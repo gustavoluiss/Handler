@@ -73,9 +73,9 @@ void enq(struct Queue *q, int PID) {
 
 int main(void) {
 
-    int x,z,w;
+    int x, z, w;
     int probIO = 0;
-    int probPPID= 0;
+    int probPPID = 0;
 
 
     typedef struct {
@@ -89,7 +89,7 @@ int main(void) {
         int tIOImpressora;
         int prioridade;
         int esperaIO;
-    }ProcessoPCB;
+    } ProcessoPCB;
     ProcessoPCB proce[NPROCESSOS];
 
     /*as filas do programa*/
@@ -97,32 +97,28 @@ int main(void) {
     struct Queue IO_impressora;
     struct Queue IO_fita;
     struct Queue IO_disco;
-    struct Queue altaPri;
     struct Queue baixaPri;
 
     /*iniciando as filas*/
     init(&Proc);
-
     init(&IO_impressora);
     init(&IO_disco);
     init(&IO_fita);
-    init(&altaPri);
     init(&baixaPri);
 
     /*criando os processos e seus PCBs*/
-    for(int i = 0; i < NPROCESSOS ; i++){
+    for (int i = 0; i < NPROCESSOS; i++) {
 
         proce[i].PID = i;
         proce[i].PPID = 0;
-        probPPID =(rand()%100);
-        if(i> 0 && probPPID >= 50) {
-            proce[i].PPID = rand() % (i-1);
+        probPPID = (rand() % 100);
+        if (i > 0 && probPPID >= 50) {
+            proce[i].PPID = rand() % (i - 1);
         }
-        if(i == 0) {
+        if (i == 0) {
             proce[i].tempoChegada = 0;
-        }
-        else {
-            proce[i].tempoChegada = ((proce[i-1].tempoChegada) + (rand() % 10) + 1);
+        } else {
+            proce[i].tempoChegada = ((proce[i - 1].tempoChegada) + (rand() % 10) + 1);
         }
         proce[i].status = STATUSNOVO;
         proce[i].prioridade = NOVO;
@@ -131,22 +127,22 @@ int main(void) {
         probIO = (rand() % 12);
 
         if (probIO <= 2) {
-            proce[i].tIOImpressora =  1 + (rand() % proce[i].tserv);
+            proce[i].tIOImpressora = 1 + (rand() % proce[i].tserv);
             proce[i].tIOFita = 0;
             proce[i].tIODisco = 0;
 
         }
-        if(probIO > 2 && probIO <=4) {
+        if (probIO > 2 && probIO <= 4) {
             proce[i].tIOImpressora = 0;
-            proce[i].tIOFita =  1 + (rand() % proce[i].tserv);
+            proce[i].tIOFita = 1 + (rand() % proce[i].tserv);
             proce[i].tIODisco = 0;
         }
-        if(probIO > 4 && probIO <=6) {
+        if (probIO > 4 && probIO <= 6) {
             proce[i].tIOImpressora = 0;
             proce[i].tIOFita = 0;
-            proce[i].tIODisco =  1 + (rand() % proce[i].tserv);
+            proce[i].tIODisco = 1 + (rand() % proce[i].tserv);
         }
-        if(probIO>6){
+        if (probIO > 6) {
             proce[i].tIOImpressora = 0;
             proce[i].tIOFita = 0;
             proce[i].tIODisco = 0;
@@ -154,9 +150,40 @@ int main(void) {
         enq(&Proc, proce[i].PID);
     }
 
-    while(Proc.size) {
-        x = head(&Proc);
-        if(Proc.size > 0) {
+
+    while (Proc.size || (IO_impressora.size) || (IO_disco.size) || (IO_fita.size) || (baixaPri.size)) {
+
+        if (IO_impressora.size > 0) {
+            int y;
+            y = head(&IO_impressora);
+            proce[y].esperaIO = proce[y].esperaIO - 1;
+            if (proce[y].esperaIO == 0) {
+                enq(&Proc, proce[y].PID);
+                deq(&IO_impressora);
+            }
+        }
+        if (IO_fita.size > 0) {
+            int y;
+            y = head(&IO_fita);
+            proce[y].esperaIO = proce[y].esperaIO - 1;
+            if (proce[y].esperaIO == 0) {
+                enq(&Proc, proce[y].PID);
+                deq(&IO_fita);
+            }
+        }
+        if (IO_disco.size > 0) {
+            int y;
+            y = head(&IO_disco);
+            proce[y].esperaIO = proce[y].esperaIO - 1;
+            if (proce[y].esperaIO == 0) {
+                enq(&baixaPri, proce[y].PID);
+                deq(&IO_disco);
+            }
+        }
+
+        if (Proc.size > 0) {
+
+            x = head(&Proc);
 
             printf("PID %d\n", x);
             printf("PPID: %d\n", proce[x].PPID);
@@ -168,58 +195,47 @@ int main(void) {
             printf("Tempo IO de impressora: %d\n", proce[x].tIOImpressora);
             printf("Prioridade: %d\n\n", proce[x].prioridade);
 
+            if (proce[x].tserv == proce[x].tIOFita || proce[x].tserv == proce[x].tIOImpressora ||
+                proce[x].tserv == proce[x].tIODisco) {
 
-            if (proce[x].tserv > 0 && proce[x].tserv == proce[x].tIOFita) {
-                proce[x].tserv = proce[x].tserv - (QUANTUM);
-                proce[x].esperaIO = 1 * TIOFITA;
-                enq(&IO_fita, proce[x].PID);
-                deq(&Proc);
-            }
-            if (proce[x].tserv > 0 && proce[x].tserv == proce[x].tIOImpressora) {
-                proce[x].tserv = proce[x].tserv - (QUANTUM);
-                proce[x].esperaIO = 1 * TIOIMPRESSORA;
-                enq(&IO_impressora, proce[x].PID);
-                deq(&Proc);
-            }
-            if (proce[x].tserv > 0 && proce[x].tserv == proce[x].tIODisco) {
-                proce[x].tserv = proce[x].tserv - (QUANTUM);
-                proce[x].esperaIO = 1 * TIODISCO;
-                enq(&IO_disco, proce[x].PID);
-                deq(&Proc);
-            }
-            if ((proce[x].tserv > 0) && (proce[x].tserv != proce[x].tIOFita) && (proce[x].tserv != proce[x].tIODisco) &&
-                (proce[x].tserv != proce[x].tIOImpressora)) {
-                proce[x].tserv = proce[x].tserv - (QUANTUM);
-                enq(&baixaPri, proce[x].PID);
-                deq(&Proc);
-            }
-            if (proce[x].tserv == 0) {
-                deq(&Proc);
-            }
-        }
-            if(IO_impressora.size){
-                int y;
-                y = head(&IO_impressora);
-                proce[y].esperaIO = proce[y].esperaIO - 1;
-                if(proce[y].esperaIO == 0) {
-                    enq(&Proc,proce[y].PID);
-                    deq(&IO_impressora);
+                if (proce[x].tserv == proce[x].tIOFita) {
+                    proce[x].tserv = proce[x].tserv - (QUANTUM);
+                    proce[x].esperaIO = TIOFITA;
+                    enq(&IO_fita, proce[x].PID);
+                    deq(&Proc);
+                }
+                if (proce[x].tserv == proce[x].tIOImpressora) {
+                    proce[x].tserv = proce[x].tserv - (QUANTUM);
+                    proce[x].esperaIO = TIOIMPRESSORA;
+                    enq(&IO_impressora, proce[x].PID);
+                    deq(&Proc);
+                }
+                if (proce[x].tserv == proce[x].tIODisco) {
+                    proce[x].tserv = proce[x].tserv - (QUANTUM);
+                    proce[x].esperaIO = TIODISCO;
+                    enq(&IO_disco, proce[x].PID);
+                    deq(&Proc);
                 }
             }
-            /*if(IO_disco.size){
-                int y;
-                y = head(&IO_disco);
-                proce[y].esperaIO = proce[y].esperaIO - 1;
+            else {
+
+                    proce[x].tserv = proce[x].tserv - (QUANTUM);
+                    if(proce[x].tserv > 0) {
+                        enq(&baixaPri,proce[x].PID);
+                        deq(&Proc);
+                    }
+                    else {
+                        deq(&Proc);
+                    }
+                }
             }
-            if(IO_fita.size){
-            int y;
-            y = head(&IO_fita);
-            proce[y].esperaIO = proce[y].esperaIO - 1;
-            }*/
+            if(Proc.size == 0 && &baixaPri>0) {
+                int y = head(&baixaPri);
+                enq(&Proc, proce[y].PID);
+                deq(&baixaPri);
+        }
+
     }
+        return 0;
 
-
-
-
-    return 0;
 }
