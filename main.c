@@ -3,11 +3,7 @@
 
 /*QUANTUM Período de tempo que os processos têm direito de executar
  na CPU cada vez que forem escalonados.*/
-#define QUANTUM 1
-
-/*tempo de troca - tempo necessário para trocar o processo executando
- na CPU pelo processo escolhido pelo algoritmo de escalonamento, ou seja, tempo de troca de contexto*/
-#define TEMPOTROCA 1
+#define QUANTUM 5
 
 /*tempo de requisição de IO*/
 #define TIMEIO 1
@@ -19,12 +15,14 @@
 
 /*status dos processos para identificação de prioridade*/
 #define NOVO 5
+#define STATUSNOVO 1
 #define IO 2
 #define PREENPTADO 3
 #define FINALIZADO 4
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 
 struct Node {
@@ -72,17 +70,19 @@ void enq(struct Queue *q, int PID) {
     }
 }
 
+
 int main(void) {
 
     int x;
     int probIO = 0;
-    int aconteceIO = 0;
+    int probPPID= 0;
+
 
     typedef struct {
         int PID;
         int PPID;
         int status;
-        int start;
+        int tempoChegada;
         int tserv;
         int tIOFita;
         int tIODisco;
@@ -109,41 +109,39 @@ int main(void) {
 
     /*criando os processos e seus PCBs*/
     for(int i = 0; i < NPROCESSOS ; i++){
-        proce[i].PID = i;
-        /*switch (proce[i].PID){
-            case(0):
-                proce[i].PPID = 0;
-                break;
-            case(1):
-                proce[i].PPID = 0;
-                break;
-            case(2):
-                proce[i].PPID = 1;
-                break;
-            case(3):
-                proce[i].PPID = 0;
-                break;
-        }*/
-        proce[i].status = NOVO;
-        proce[i].start = i;
-        proce[i].tserv = rand() % 10 + 5;
 
+        proce[i].PID = i;
+        proce[i].PPID = 0;
+        probPPID =(rand()%100);
+        if(i> 0 && probPPID >= 50) {
+            proce[i].PPID = rand() % (i-1);
+        }
+        if(i == 0) {
+            proce[i].tempoChegada = 0;
+        }
+        else {
+            proce[i].tempoChegada = ((proce[i-1].tempoChegada) + (rand() % 10) + 1);
+        }
+        proce[i].status = STATUSNOVO;
+        proce[i].prioridade = NOVO;
+        proce[i].tserv = rand() % 10 + 5;
         probIO = (rand() % 12);
+
         if (probIO <= 2) {
-            proce[i].tIOImpressora = rand() % 5 + 1;;
+            proce[i].tIOImpressora =  1;;
             proce[i].tIOFita = 0;
             proce[i].tIODisco = 0;
 
         }
         if(probIO > 2 && probIO <=4) {
             proce[i].tIOImpressora = 0;
-            proce[i].tIOFita = rand() % 5 + 1;;
+            proce[i].tIOFita =  1;;
             proce[i].tIODisco = 0;
         }
         if(probIO > 4 && probIO <=6) {
             proce[i].tIOImpressora = 0;
             proce[i].tIOFita = 0;
-            proce[i].tIODisco = rand() % 5 + 1;;
+            proce[i].tIODisco =  1;;
         }
         if(probIO>6){
             proce[i].tIOImpressora = 0;
@@ -151,18 +149,16 @@ int main(void) {
             proce[i].tIODisco = 0;
         }
 
-        proce[i].prioridade = NOVO;
+
         enq(&Proc, proce[i].PID);
     }
 
     while(Proc.size) {
         x = head(&Proc);
         printf("PID %d\n", x);
-        printf("PID %d\n",x);
-
         printf("PPID: %d\n", proce[x].PPID);
+        printf("Tempo de chegada: %d\n",proce[x].tempoChegada);
         printf("Status: %d\n", proce[x].status);
-        printf("Start: %d\n", proce[x].start);
         printf("Tempo de servico: %d\n", proce[x].tserv);
         printf("Tempo IO de fita: %d\n", proce[x].tIOFita);
         printf("Tempo IO de disco: %d\n", proce[x].tIODisco);
