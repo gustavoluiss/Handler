@@ -158,8 +158,15 @@ int main(void) {
             y = head(&IO_impressora);
             proce[y].esperaIO = proce[y].esperaIO - 1;
             if (proce[y].esperaIO == 0) {
-                enq(&Proc, proce[y].PID);
-                deq(&IO_impressora);
+                proce[y].tserv = proce[y].tserv - (QUANTUM);
+                if(proce[y].tserv>0){
+                    enq(&Proc, proce[y].PID);
+                    deq(&IO_impressora);
+                }
+                else {
+                    deq(&IO_impressora);
+                }
+
             }
         }
         if (IO_fita.size > 0) {
@@ -167,8 +174,15 @@ int main(void) {
             y = head(&IO_fita);
             proce[y].esperaIO = proce[y].esperaIO - 1;
             if (proce[y].esperaIO == 0) {
-                enq(&Proc, proce[y].PID);
-                deq(&IO_fita);
+                proce[y].tserv = proce[y].tserv - (QUANTUM);
+                if(proce[y].tserv>0){
+                    enq(&Proc, proce[y].PID);
+                    deq(&IO_fita);
+                }
+                else {
+                    deq(&IO_fita);
+                }
+
             }
         }
         if (IO_disco.size > 0) {
@@ -176,8 +190,15 @@ int main(void) {
             y = head(&IO_disco);
             proce[y].esperaIO = proce[y].esperaIO - 1;
             if (proce[y].esperaIO == 0) {
-                enq(&baixaPri, proce[y].PID);
-                deq(&IO_disco);
+                proce[y].tserv = proce[y].tserv - (QUANTUM);
+                if(proce[y].tserv>0){
+                    enq(&baixaPri, proce[y].PID);
+                    deq(&IO_disco);
+                }
+                else {
+                    deq(&IO_disco);
+                }
+
             }
         }
 
@@ -199,19 +220,19 @@ int main(void) {
                 proce[x].tserv == proce[x].tIODisco) {
 
                 if (proce[x].tserv == proce[x].tIOFita) {
-                    proce[x].tserv = proce[x].tserv - (QUANTUM);
+                    //proce[x].tserv = proce[x].tserv - (QUANTUM);
                     proce[x].esperaIO = TIOFITA;
                     enq(&IO_fita, proce[x].PID);
                     deq(&Proc);
                 }
                 if (proce[x].tserv == proce[x].tIOImpressora) {
-                    proce[x].tserv = proce[x].tserv - (QUANTUM);
+                    //proce[x].tserv = proce[x].tserv - (QUANTUM);
                     proce[x].esperaIO = TIOIMPRESSORA;
                     enq(&IO_impressora, proce[x].PID);
                     deq(&Proc);
                 }
                 if (proce[x].tserv == proce[x].tIODisco) {
-                    proce[x].tserv = proce[x].tserv - (QUANTUM);
+                    //proce[x].tserv = proce[x].tserv - (QUANTUM);
                     proce[x].esperaIO = TIODISCO;
                     enq(&IO_disco, proce[x].PID);
                     deq(&Proc);
@@ -229,7 +250,7 @@ int main(void) {
                     }
                 }
             }
-            if(Proc.size == 0 && &baixaPri>0) {
+            if(Proc.size == 0 && baixaPri.size>0) {
                 int y = head(&baixaPri);
                 enq(&Proc, proce[y].PID);
                 deq(&baixaPri);
